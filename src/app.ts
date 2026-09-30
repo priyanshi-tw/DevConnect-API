@@ -22,5 +22,19 @@ app.post('/user/login', (req, res) => {
 });
 
 app.get('/user', userAuth, (req, res) => {
-  res.send('User data sent');
+  // throw new Error('Something went wrong!');
+
+  try {
+    res.send('User data sent');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Something went wrong!';
+    res.status(500).send(message);
+  }
+});
+
+app.use('/', (err, res) => {
+  if (err) {
+    //Log your error here
+    res.status(500).send('Something went wrong!');
+  }
 });
