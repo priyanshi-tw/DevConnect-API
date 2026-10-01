@@ -1,40 +1,34 @@
 import express from 'express';
-import { adminAuth, userAuth } from './middlewares/auth.js';
+import { connectDB } from './config/database.js';
+import { User } from './models/user.js';
+
 const app = express();
 
-app.listen(3000, () => {
-  console.log('Server is successfully running on port 3000');
-});
+connectDB()
+  .then(() => {
+    console.log('Database connected successfully');
+    app.listen(3000, () => {
+      console.log('Server is successfully running on port 3000');
+    });
+  })
+  .catch((err) => {
+    console.error('Database connection error:', err);
+  });
 
-//handle auth middleware
-app.use('/admin', adminAuth);
-
-app.get('/admin/getAllData', (req, res) => {
-  res.send('All data sent');
-});
-
-app.delete('/admin/deleteUser', (req, res) => {
-  res.send(`User deleted successfully`);
-});
-
-app.post('/user/login', (req, res) => {
-  res.send('User logged in successfully');
-});
-
-app.get('/user', userAuth, (req, res) => {
-  // throw new Error('Something went wrong!');
+app.post('/singup', async (req, res) => {
+  const user = new User({
+    firstName: 'Anushka',
+    lastName: 'Sharma',
+    emailId: 'anushka.sharma@example.com',
+    password: 'password123',
+    age: 30,
+    gender: 'Female',
+  });
 
   try {
-    res.send('User data sent');
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Something went wrong!';
-    res.status(500).send(message);
-  }
-});
-
-app.use('/', (err, res) => {
-  if (err) {
-    //Log your error here
-    res.status(500).send('Something went wrong!');
+    await user.save();
+    res.send('User created successfully');
+  } catch (error) {
+    res.status(400).send('Error creating user: ' + (error as Error).message);
   }
 });
