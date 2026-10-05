@@ -83,12 +83,22 @@ app.get('/feed', async (req, res) => {
   }
 });
 
-app.patch('/user', async (req, res) => {
-  const userId = req.body.userId as string;
+app.patch('/user/:userId', async (req, res) => {
+  const userId = req.params.userId;
   // const emailId = req.body.emailId as string;
-  const data = req.body.data;
+  const data = req.body;
+
   try {
-    const user = await User.findByIdAndUpdate(userId, data, { new: true });
+    const ALLOWED_UPDATES = ['age', 'gender', 'photoUrl', 'about', 'skills'];
+
+    const isValidOperation = Object.keys(data).every((update) => ALLOWED_UPDATES.includes(update));
+    if (!isValidOperation) {
+      return res.status(400).send('Invalid updates!');
+    }
+    if (data?.skills?.length > 10) {
+      return res.status(400).send('Skills cannot be more than 10');
+    }
+    const user = await User.findByIdAndUpdate(userId, data, { new: true, runValidators: true });
     // const user = await User.findByIdAndUpdate(userId, data, { returnDocument: 'after' });
     // const user = await User.findOneAndUpdate({ emailId: emailId }, data, { new: true });
     res.send('User updated successfully: ' + user);
