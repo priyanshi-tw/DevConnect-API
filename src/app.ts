@@ -1,6 +1,7 @@
 import express from 'express';
 import { connectDB } from './config/database.js';
 import { User } from './models/user.js';
+import { signupSchema } from './validations/user.validation.js';
 
 const app = express();
 
@@ -108,8 +109,14 @@ app.patch('/user/:userId', async (req, res) => {
 });
 
 app.post('/signup', async (req, res) => {
-  const user = new User(req.body);
-
+  const result = signupSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({
+      message: 'Invalid request data',
+      errors: result.error.issues,
+    });
+  }
+  const user = new User(result.data);
   try {
     await user.save();
     res.send('User created successfully');
