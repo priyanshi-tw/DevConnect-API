@@ -1,7 +1,8 @@
 import express from 'express';
 import { connectDB } from './config/database.js';
 import { User } from './models/user.js';
-import { signupSchema } from './validations/user.validation.js';
+import { validateSingupData } from './utils/validation.js';
+import bcrypt from 'bcrypt';
 
 const app = express();
 
@@ -109,15 +110,18 @@ app.patch('/user/:userId', async (req, res) => {
 });
 
 app.post('/signup', async (req, res) => {
-  const result = signupSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({
-      message: 'Invalid request data',
-      errors: result.error.issues,
-    });
-  }
-  const user = new User(result.data);
   try {
+    validateSingupData(req);
+    const { password, firstName, lastName, emailId } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Hashed Password:', hashedPassword);
+    // req.body.password = hashedPassword;
+    const user = new User({
+      firstName: firstName,
+      lastName: lastName,
+      emailId: emailId,
+      password: hashedPassword,
+    });
     await user.save();
     res.send('User created successfully');
   } catch (error) {
