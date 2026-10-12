@@ -3,11 +3,13 @@ import { connectDB } from './config/database.js';
 import { User } from './models/user.js';
 import { validateSingupData } from './utils/validation.js';
 import bcrypt from 'bcrypt';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 
 app.use(express.json());
-
+app.use(cookieParser());
 connectDB()
   .then(() => {
     console.log('Database connected successfully');
@@ -129,4 +131,46 @@ app.post('/signup', async (req, res) => {
   }
 
   console.log(req.body);
+});
+
+app.get('/profile', async (req, res) => {
+  try {
+    const cookie = req.cookies;
+
+    const { token } = cookie;
+    if (!token) {
+      throw new Error('Invalid token');
+    }
+    const decodedToken = jwt.verify(token, 'DEVCONNECT_SECRET');
+    const { _id } = decodedToken as { _id: string };
+    const user = await User.findById(_id);
+
+    console.log('Decoded Token:', decodedToken);
+    console.log('Cookie:', cookie);
+    res.send(user);
+  } catch (error) {
+    res.status(400).send('Error retrieving profile: ' + (error as Error).message);
+  }
+});
+app.post('/login', async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      return res.status(404).send('Invalid credentials');
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      const token = jwt.sign({ _id: user._id }, 'DEVCONNECT_SECRET');
+      console.log('Generated Token:', token);
+      res.cookie('token', token);
+      res.send('Login successful');
+    } else {
+      res.status(400).send('Invalid credentials');
+    }
+  } catch (error) {
+    res.status(400).send('Error logging in: ' + (error as Error).message);
+  }
 });
